@@ -1,4 +1,4 @@
-package de.goldendeveloper;
+package de.goldendeveloper.github.manager;
 
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentBuilder;
@@ -14,8 +14,6 @@ public class RepositoryProcessor {
 
 
     public void process(GHRepository repo) throws IOException {
-        System.out.println("Processing " + repo.getName() + "...");
-
         checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "bug_report.md", "Create bug_report.md", "src/main/resources/.github/ISSUE_TEMPLATE/bug_report.md");
         checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "feature_request.md", "Create feature_request.md", "src/main/resources/.github/ISSUE_TEMPLATE/feature_request.md");
 
@@ -34,7 +32,6 @@ public class RepositoryProcessor {
         }
         checkWebsite(repo);
         checkTopics(repo);
-        System.out.println("Finished processing " + repo.getName() + "!");
     }
 
     private void checkOrUpload(GHRepository repo, String directoryPath, String fileName, String commitMessage, String localPath) throws IOException {
