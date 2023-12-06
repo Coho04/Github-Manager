@@ -15,8 +15,8 @@ public class Main {
             new Discord();
         }
         Calendar timeOfDay = Calendar.getInstance();
-        timeOfDay.set(Calendar.HOUR_OF_DAY, 1);
-        timeOfDay.set(Calendar.MINUTE, 19);
+        timeOfDay.set(Calendar.HOUR_OF_DAY, 12);
+        timeOfDay.set(Calendar.MINUTE, 0);
         timeOfDay.set(Calendar.SECOND, 0);
         new DailyRunnerDaemon(timeOfDay, () -> {
             try {

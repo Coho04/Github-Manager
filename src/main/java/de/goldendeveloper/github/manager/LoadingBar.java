@@ -16,9 +16,8 @@ public class LoadingBar {
     }
 
     private void printProgress(int step, int totalSteps) {
-        int width = 50; // Breite des Ladebalkens
+        int width = 50;
         int progressMarker = (step * width) / totalSteps;
-
         System.out.print("\r[");
         for (int i = 0; i < width; i++) {
             if (i < progressMarker) {
