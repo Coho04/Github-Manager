@@ -32,6 +32,7 @@ public class Main {
                     loadingBar.updateProgress();
                 }
             } catch (Exception e) {
+                System.out.println(e.getMessage());
                 System.out.println("An error occurred performing daily housekeeping");
             }
         }, "daily-housekeeping").start();
