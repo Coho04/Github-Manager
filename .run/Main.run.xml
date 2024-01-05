@@ -2,6 +2,9 @@
   <configuration default="false" name="Main" type="Application" factoryName="Application">
     <option name="ALTERNATIVE_JRE_PATH" value="openjdk-21" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <envs>
+      <env name="SENTRY_AUTH_TOKEN" value="c7de010a89f0954d5819f053444d75f185e0bf498553f3f6c5e876d32a52b055" />
+    </envs>
     <option name="MAIN_CLASS_NAME" value="de.goldendeveloper.github.manager.Main" />
     <module name="Github-Manager" />
     <method v="2">

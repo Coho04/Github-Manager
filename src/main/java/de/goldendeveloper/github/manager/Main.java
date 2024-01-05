@@ -1,6 +1,9 @@
 package de.goldendeveloper.github.manager;
 
+import io.sentry.ITransaction;
+import io.sentry.SpanStatus;
 import org.kohsuke.github.*;
+import io.sentry.Sentry;
 
 import java.util.Calendar;
 
@@ -10,10 +13,29 @@ public class Main {
 
     public static void main(String[] args) {
         config = new Config();
+        Sentry.init(options -> {
+            options.setDsn(config.getSentryDns());
+            options.setTracesSampleRate(1.0);
+        });
+
+        ITransaction transaction = Sentry.startTransaction("startProcess()", "task");
+        try {
+            startProcess();
+        } catch (Exception e) {
+            transaction.setThrowable(e);
+            transaction.setStatus(SpanStatus.INTERNAL_ERROR);
+            throw e;
+        } finally {
+            transaction.finish();
+        }
+    }
+
+    public static void startProcess() {
         String device = System.getProperty("os.name").split(" ")[0];
         if (!device.equalsIgnoreCase("windows") && !device.equalsIgnoreCase("Mac")) {
             new Discord();
         }
+        System.out.println("Starting daily housekeeping daemon");
         Calendar timeOfDay = Calendar.getInstance();
         timeOfDay.set(Calendar.HOUR_OF_DAY, 12);
         timeOfDay.set(Calendar.MINUTE, 0);
@@ -32,8 +54,8 @@ public class Main {
                     loadingBar.updateProgress();
                 }
             } catch (Exception e) {
-                System.out.println(e.getMessage());
                 System.out.println("An error occurred performing daily housekeeping");
+                System.out.println(e.getMessage());
             }
         }, "daily-housekeeping").start();
     }
