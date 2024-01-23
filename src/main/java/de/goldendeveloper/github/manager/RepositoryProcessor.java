@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RepositoryProcessor {
 
@@ -127,11 +128,8 @@ public class RepositoryProcessor {
     }
 
     public String readResource(String localPath) throws IOException {
-        StringBuilder builder = new StringBuilder();
-        for (String line : Files.readAllLines(Paths.get(localPath))) {
-            builder.append(line).append("\n");
-        }
-        return builder.toString();
+        return Files.lines(Paths.get(localPath))
+                .collect(Collectors.joining("\n"));
     }
 
     public Boolean repoIsNotIgnored(GHRepository repo) {

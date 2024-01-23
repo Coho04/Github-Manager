@@ -1,5 +1,6 @@
 package de.goldendeveloper.github.manager;
 
+import de.goldendeveloper.github.manager.console.ConsoleReader;
 import io.sentry.ITransaction;
 import io.sentry.SpanStatus;
 import org.kohsuke.github.*;
@@ -30,34 +31,37 @@ public class Main {
         }
     }
 
-    public static void startProcess() {
+    private static void startProcess() {
         String device = System.getProperty("os.name").split(" ")[0];
         if (!device.equalsIgnoreCase("windows") && !device.equalsIgnoreCase("Mac")) {
             new Discord();
         }
+        new ConsoleReader();
         System.out.println("Starting daily housekeeping daemon");
         Calendar timeOfDay = Calendar.getInstance();
         timeOfDay.set(Calendar.HOUR_OF_DAY, 12);
         timeOfDay.set(Calendar.MINUTE, 0);
         timeOfDay.set(Calendar.SECOND, 0);
-        new DailyRunnerDaemon(timeOfDay, () -> {
-            try {
-                GitHub github = GitHub.connect(config.getGithubUsername(), config.getGithubToken());
-                GHOrganization gdOrganization = github.getOrganization("Golden-Developer");
-                RepositoryProcessor processor = new RepositoryProcessor();
+        new DailyRunnerDaemon(timeOfDay, Main::runRepositoryProcessor, "daily-housekeeping").start();
+    }
 
-                int totalRepos = gdOrganization.listRepositories().toList().size();
-                LoadingBar loadingBar = new LoadingBar(totalRepos);
+    public static void runRepositoryProcessor() {
+        try {
+            GitHub github = GitHub.connect(config.getGithubUsername(), config.getGithubToken());
+            GHOrganization gdOrganization = github.getOrganization("Golden-Developer");
+            RepositoryProcessor processor = new RepositoryProcessor();
 
-                for (GHRepository repo : gdOrganization.listRepositories()) {
-                    processor.process(repo);
-                    loadingBar.updateProgress();
-                }
-            } catch (Exception e) {
-                System.out.println("An error occurred performing daily housekeeping");
-                System.out.println(e.getMessage());
+            int totalRepos = gdOrganization.listRepositories().toList().size();
+            LoadingBar loadingBar = new LoadingBar(totalRepos);
+
+            for (GHRepository repo : gdOrganization.listRepositories()) {
+                processor.process(repo);
+                loadingBar.updateProgress();
             }
-        }, "daily-housekeeping").start();
+        } catch (Exception e) {
+            System.out.println("An error occurred performing daily housekeeping");
+            System.out.println(e.getMessage());
+        }
     }
 
     public static Config getConfig() {
