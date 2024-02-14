@@ -1,5 +1,6 @@
 package de.goldendeveloper.github.manager;
 
+import io.sentry.Sentry;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentBuilder;
 import org.kohsuke.github.GHIssueState;
@@ -42,11 +43,11 @@ public class RepositoryProcessor {
             List<GHContent> directory = repo.getDirectoryContent(directoryPath);
             if (directory.isEmpty() || directory.stream().noneMatch(file -> file.getName().equals(fileName))) {
                 if (!content.isEmpty()) {
-                    if (directoryPath.isEmpty()) {
-                        uploadFile(repo, finalContent, commitMessage, fileName);
-                    } else {
-                        uploadFile(repo, finalContent, commitMessage, directoryPath + "/" + fileName);
+                    String path = fileName;
+                    if (!directoryPath.isEmpty()) {
+                        path = directoryPath + "/" + fileName;
                     }
+                    uploadFile(repo, finalContent, commitMessage, path);
                 }
             }
         } catch (Exception e) {
@@ -54,6 +55,8 @@ public class RepositoryProcessor {
                 uploadFile(repo, finalContent, commitMessage, directoryPath + "/" + fileName);
             } else {
                 System.out.println("Error in " + repo.getName() + ": " + e.getMessage());
+                Sentry.setTag("Repo-Name", repo.getName());;
+                Sentry.captureException(e);
             }
         }
     }
@@ -72,6 +75,7 @@ public class RepositoryProcessor {
             if (e.getMessage().contains("Not Found")) {
                 makeIssue(repo, issueTitle);
             } else {
+                Sentry.captureException(e);
                 System.out.println("Error in " + repo.getName() + ": " + e.getMessage());
             }
         }
@@ -99,6 +103,7 @@ public class RepositoryProcessor {
                         issue.close();
                     }
                 } catch (IOException e) {
+                    Sentry.captureException(e);
                     e.printStackTrace();
                 }
             });
@@ -117,7 +122,7 @@ public class RepositoryProcessor {
             List<String> topics = repo.listTopics();
             for (String topic : defaultTopics) {
                 if (!topics.contains(topic)) {
-                    topics.add(topic);
+                    topics.add(topic.toLowerCase());
                 }
             }
             if (repo.getLanguage() != null && !topics.contains(repo.getLanguage().toLowerCase())) {
@@ -128,8 +133,7 @@ public class RepositoryProcessor {
     }
 
     public String readResource(String localPath) throws IOException {
-        return Files.lines(Paths.get(localPath))
-                .collect(Collectors.joining("\n"));
+        return Files.lines(Paths.get(localPath)).collect(Collectors.joining("\n"));
     }
 
     public Boolean repoIsNotIgnored(GHRepository repo) {
@@ -137,13 +141,7 @@ public class RepositoryProcessor {
         List<String> ignoredLanguages = new java.util.ArrayList<>(List.of("html", "css", "typescript", "shell"));
         ignoredRepos.replaceAll(String::toLowerCase);
         ignoredLanguages.replaceAll(String::toLowerCase);
-        if (repo.isArchived()) {
-            return false;
-        }
-        if (repo.getLanguage() == null) {
-            return false;
-        }
-        if (ignoredLanguages.contains(repo.getLanguage().toLowerCase())) {
+        if (repo.isArchived() || repo.getLanguage() == null || ignoredLanguages.contains(repo.getLanguage().toLowerCase())) {
             return false;
         }
         return !ignoredRepos.contains(repo.getName().toLowerCase());

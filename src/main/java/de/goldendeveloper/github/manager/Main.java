@@ -25,6 +25,7 @@ public class Main {
         } catch (Exception e) {
             transaction.setThrowable(e);
             transaction.setStatus(SpanStatus.INTERNAL_ERROR);
+            Sentry.captureException(e);
             throw e;
         } finally {
             transaction.finish();
@@ -60,7 +61,10 @@ public class Main {
             }
         } catch (Exception e) {
             System.out.println("An error occurred performing daily housekeeping");
-            System.out.println(e.getMessage());
+            System.out.println("ErrorMessage: " + e.getMessage());
+            System.out.println(e.getCause());
+            Sentry.captureException(e);
+            e.printStackTrace();
         }
     }
 
