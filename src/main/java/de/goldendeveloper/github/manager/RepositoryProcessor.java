@@ -33,6 +33,7 @@ public class RepositoryProcessor {
         if (repo.getLanguage() != null) {
             if (repo.getLanguage().equalsIgnoreCase("Java")) {
                 checkDirectoryNotExistsOrMakeIssue(repo, ".idea", "Remove .idea directory");
+                checkOrUpload(repo, ".github/workflows", "build.yml", "Create build.yml", "src/main/resources/.github/workflows/java/maven.yml");
             }
         }
         checkWebsite(repo);

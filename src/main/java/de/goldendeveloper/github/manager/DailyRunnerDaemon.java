@@ -24,18 +24,13 @@ public class DailyRunnerDaemon
 
     public void start()
     {
-        startTimer();
-    }
-
-    private void startTimer()
-    {
         new Timer(runThreadName, false).schedule(new TimerTask()
         {
             @Override
             public void run()
             {
                 dailyTask.run();
-                startTimer();
+                start();
             }
         }, getNextRunTime());
     }
