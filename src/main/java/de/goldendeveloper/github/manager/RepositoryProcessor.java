@@ -1,21 +1,23 @@
 package de.goldendeveloper.github.manager;
 
 import io.sentry.Sentry;
-import org.kohsuke.github.GHContent;
-import org.kohsuke.github.GHContentBuilder;
-import org.kohsuke.github.GHIssueState;
-import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class RepositoryProcessor {
 
+    private String branche = "main";
 
     public void process(GHRepository repo) throws IOException {
+        branche = "main";
+        checkBranchOrMakeIssue(repo);
+        checkDescriptionOrMakeIssue(repo);
         checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "bug_report.md", "Create bug_report.md", "src/main/resources/.github/ISSUE_TEMPLATE/bug_report.md");
         checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "feature_request.md", "Create feature_request.md", "src/main/resources/.github/ISSUE_TEMPLATE/feature_request.md");
 
@@ -25,11 +27,12 @@ public class RepositoryProcessor {
         checkOrUpload(repo, "", "LICENSE", "Create LICENSE", "src/main/resources/LICENSE");
         checkOrUpload(repo, "", "SECURITY.md", "Create SECURITY.md", "src/main/resources/SECURITY.md");
 
+        checkFileNotExistsOrMakeIssue(repo, "", ".env", "Delete .env file");
         checkOrIssue(repo, ".github", "dependabot.yml", "Create dependabot.yml");
 
         if (repo.getLanguage() != null) {
             if (repo.getLanguage().equalsIgnoreCase("Java")) {
-//                checkDirectoryNotExistsOrMakeIssue(repo, ".idea", "Remove .idea directory");
+                checkDirectoryNotExistsOrMakeIssue(repo, ".idea", "Remove .idea directory");
             }
         }
         checkWebsite(repo);
@@ -55,7 +58,7 @@ public class RepositoryProcessor {
                 uploadFile(repo, finalContent, commitMessage, directoryPath + "/" + fileName);
             } else {
                 System.out.println("Error in " + repo.getName() + ": " + e.getMessage());
-                Sentry.setTag("Repo-Name", repo.getName());;
+                Sentry.setTag("Repo-Name", repo.getName());
                 Sentry.captureException(e);
             }
         }
@@ -84,7 +87,7 @@ public class RepositoryProcessor {
     public void uploadFile(GHRepository repo, String content, String commit, String path) throws IOException {
         if (repoIsNotIgnored(repo)) {
             GHContentBuilder contentBuilder = repo.createContent();
-            contentBuilder.branch("main");
+            contentBuilder.branch(branche);
             contentBuilder.content(content);
             contentBuilder.message(commit);
             contentBuilder.path(path);
@@ -126,14 +129,78 @@ public class RepositoryProcessor {
                 }
             }
             if (repo.getLanguage() != null && !topics.contains(repo.getLanguage().toLowerCase())) {
-                topics.add(repo.getLanguage().toLowerCase());
+                if (!repo.getLanguage().equalsIgnoreCase("c#")) {
+                    topics.add(repo.getLanguage().toLowerCase());
+                } else {
+                    topics.add("csharp");
+                }
             }
-            repo.setTopics(topics);
+            try {
+                repo.setTopics(topics);
+            } catch (IOException e) {
+                Sentry.captureException(e);
+                e.printStackTrace();
+            }
         }
     }
 
-    public String readResource(String localPath) throws IOException {
+    private String readResource(String localPath) throws IOException {
         return Files.lines(Paths.get(localPath)).collect(Collectors.joining("\n"));
+    }
+
+    private void checkFileNotExistsOrMakeIssue(GHRepository repository, String directory, String file, String issueTitle) {
+        try {
+            List<GHContent> directoryContent = repository.getDirectoryContent(directory);
+            if (directoryContent.stream().anyMatch(content -> content.getName().equals(file))) {
+                makeIssue(repository, issueTitle);
+            }
+        } catch (IOException e) {
+            Sentry.captureException(e);
+            e.printStackTrace();
+        }
+    }
+
+
+    private void checkDirectoryNotExistsOrMakeIssue(GHRepository repository, String directory, String issueTitle) {
+        try {
+            List<GHContent> directoryContent = repository.getDirectoryContent(directory);
+            if (!directoryContent.isEmpty()) {
+                makeIssue(repository, issueTitle);
+            }
+        } catch (IOException e) {
+            if (!e.getMessage().contains("Not Found")) {
+                Sentry.captureException(e);
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void checkBranchOrMakeIssue(GHRepository repository) {
+        try {
+            Map<String, GHBranch> branches = repository.getBranches();
+            if (branches.values().stream().noneMatch(branch -> branch.getName().equalsIgnoreCase("main"))) {
+                if (branches.values().stream().anyMatch(branch -> branch.getName().equalsIgnoreCase("master"))) {
+                    makeIssue(repository, "Rename master branch to main");
+                    branche = "master";
+                } else {
+                    makeIssue(repository, "Create main branch");
+                }
+            }
+        } catch (IOException e) {
+            Sentry.captureException(e);
+            e.printStackTrace();
+        }
+    }
+
+    private void checkDescriptionOrMakeIssue(GHRepository repository) {
+        try {
+            if (repository.getDescription() == null || repository.getDescription().isEmpty()) {
+                makeIssue(repository, "Add a description to the repository");
+            }
+        } catch (IOException e) {
+            Sentry.captureException(e);
+            e.printStackTrace();
+        }
     }
 
     public Boolean repoIsNotIgnored(GHRepository repo) {
