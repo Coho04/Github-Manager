@@ -3,9 +3,10 @@ package de.goldendeveloper.github.manager;
 import io.sentry.Sentry;
 import org.kohsuke.github.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,14 +19,14 @@ public class RepositoryProcessor {
         branche = "main";
         checkBranchOrMakeIssue(repo);
         checkDescriptionOrMakeIssue(repo);
-        checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "bug_report.md", "Create bug_report.md", "src/main/resources/.github/ISSUE_TEMPLATE/bug_report.md");
-        checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "feature_request.md", "Create feature_request.md", "src/main/resources/.github/ISSUE_TEMPLATE/feature_request.md");
+        checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "bug_report.md", "Create bug_report.md", ".github/ISSUE_TEMPLATE/bug_report.md");
+        checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "feature_request.md", "Create feature_request.md", ".github/ISSUE_TEMPLATE/feature_request.md");
 
-        checkOrUpload(repo, ".github", "PULL_REQUEST_TEMPLATE.md", "Create PULL_REQUEST_TEMPLATE.md", "src/main/resources/.github/PULL_REQUEST_TEMPLATE.md");
-        checkOrUpload(repo, "", "CODE_OF_CONDUCT.md", "Create CODE_OF_CONDUCT.md", "src/main/resources/CODE_OF_CONDUCT.md");
-        checkOrUpload(repo, "", "CONTRIBUTING.md", "Create CONTRIBUTING.md", "src/main/resources/CONTRIBUTING.md");
-        checkOrUpload(repo, "", "LICENSE", "Create LICENSE", "src/main/resources/LICENSE");
-        checkOrUpload(repo, "", "SECURITY.md", "Create SECURITY.md", "src/main/resources/SECURITY.md");
+        checkOrUpload(repo, ".github", "PULL_REQUEST_TEMPLATE.md", "Create PULL_REQUEST_TEMPLATE.md", ".github/PULL_REQUEST_TEMPLATE.md");
+        checkOrUpload(repo, "", "CODE_OF_CONDUCT.md", "Create CODE_OF_CONDUCT.md", "CODE_OF_CONDUCT.md");
+        checkOrUpload(repo, "", "CONTRIBUTING.md", "Create CONTRIBUTING.md", "CONTRIBUTING.md");
+        checkOrUpload(repo, "", "LICENSE", "Create LICENSE", "LICENSE");
+        checkOrUpload(repo, "", "SECURITY.md", "Create SECURITY.md", "SECURITY.md");
 
         checkFileNotExistsOrMakeIssue(repo, "", ".env", "Delete .env file");
         checkOrIssue(repo, ".github", "dependabot.yml", "Create dependabot.yml");
@@ -33,7 +34,7 @@ public class RepositoryProcessor {
         if (repo.getLanguage() != null) {
             if (repo.getLanguage().equalsIgnoreCase("Java")) {
                 checkDirectoryNotExistsOrMakeIssue(repo, ".idea", "Remove .idea directory");
-                checkOrUpload(repo, ".github/workflows", "build.yml", "Create build.yml", "src/main/resources/.github/workflows/java/maven.yml");
+                checkOrUpload(repo, ".github/workflows", "build.yml", "Create build.yml", ".github/workflows/java/maven.yml");
             }
         }
         checkWebsite(repo);
@@ -145,8 +146,15 @@ public class RepositoryProcessor {
         }
     }
 
-    private String readResource(String localPath) throws IOException {
-        return Files.lines(Paths.get(localPath)).collect(Collectors.joining("\n"));
+    private String readResource(String resourcePath) throws IOException {
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new IOException("Resource not found: " + resourcePath);
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                return reader.lines().collect(Collectors.joining("\n"));
+            }
+        }
     }
 
     private void checkFileNotExistsOrMakeIssue(GHRepository repository, String directory, String file, String issueTitle) {
