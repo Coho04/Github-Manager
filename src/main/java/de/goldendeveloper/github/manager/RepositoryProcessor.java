@@ -29,12 +29,15 @@ public class RepositoryProcessor {
         checkOrUpload(repo, "", "SECURITY.md", "Create SECURITY.md", "SECURITY.md");
 
         checkFileNotExistsOrMakeIssue(repo, "", ".env", "Delete .env file");
-        checkOrIssue(repo, ".github", "dependabot.yml", "Create dependabot.yml");
 
         if (repo.getLanguage() != null) {
             if (repo.getLanguage().equalsIgnoreCase("Java")) {
                 checkDirectoryNotExistsOrMakeIssue(repo, ".idea", "Remove .idea directory");
                 checkOrUpload(repo, ".github/workflows", "build.yml", "Create build.yml", ".github/workflows/java/maven.yml");
+            }
+
+            if (!repo.getLanguage().equalsIgnoreCase("swift")) {
+                checkOrIssue(repo, ".github", "dependabot.yml", "Create dependabot.yml");
             }
         }
         checkWebsite(repo);
