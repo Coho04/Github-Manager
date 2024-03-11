@@ -28,6 +28,8 @@ public class RepositoryProcessor {
         checkOrUpload(repo, "", "LICENSE", "Create LICENSE", "LICENSE");
         checkOrUpload(repo, "", "SECURITY.md", "Create SECURITY.md", "SECURITY.md");
 
+        checkOrUpload(repo, "", "README.md", "Create README.md", "README.md");
+
         checkFileNotExistsOrMakeIssue(repo, "", ".env", "Delete .env file");
 
         if (repo.getLanguage() != null) {
@@ -112,7 +114,7 @@ public class RepositoryProcessor {
                     }
                 } catch (IOException e) {
                     Sentry.captureException(e);
-                    e.printStackTrace();
+                    System.out.println(e.getMessage());
                 }
             });
         }
@@ -144,7 +146,7 @@ public class RepositoryProcessor {
                 repo.setTopics(topics);
             } catch (IOException e) {
                 Sentry.captureException(e);
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         }
     }
@@ -168,7 +170,7 @@ public class RepositoryProcessor {
             }
         } catch (IOException e) {
             Sentry.captureException(e);
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
@@ -182,7 +184,7 @@ public class RepositoryProcessor {
         } catch (IOException e) {
             if (!e.getMessage().contains("Not Found")) {
                 Sentry.captureException(e);
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         }
     }
@@ -200,7 +202,7 @@ public class RepositoryProcessor {
             }
         } catch (IOException e) {
             Sentry.captureException(e);
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
@@ -211,7 +213,7 @@ public class RepositoryProcessor {
             }
         } catch (IOException e) {
             Sentry.captureException(e);
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 

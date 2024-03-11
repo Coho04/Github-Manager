@@ -62,9 +62,7 @@ public class Main {
         } catch (Exception e) {
             System.out.println("An error occurred performing daily housekeeping");
             System.out.println("ErrorMessage: " + e.getMessage());
-            System.out.println(e.getCause());
             Sentry.captureException(e);
-            e.printStackTrace();
         }
     }
 

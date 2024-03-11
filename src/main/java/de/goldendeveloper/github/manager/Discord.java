@@ -1,8 +1,10 @@
 package de.goldendeveloper.github.manager;
 
+import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;
 import club.minnced.discord.webhook.send.WebhookEmbed;
 import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
+import io.sentry.Sentry;
 
 import java.util.Date;
 
@@ -17,6 +19,12 @@ public class Discord {
         embed.addField(new WebhookEmbed.EmbedField(false, "Status", "\uD83D\uDFE2 Gestartet"));
         embed.setFooter(new WebhookEmbed.EmbedFooter("@Golden-Developer", null));
         embed.setTimestamp(new Date().toInstant());
-        new WebhookClientBuilder(Main.getConfig().getDiscordWebhook()).build().send(embed.build());
+        try (WebhookClient client = new WebhookClientBuilder(Main.getConfig().getDiscordWebhook()).build()) {
+            client.send(embed.build());
+        } catch (Exception e) {
+            System.out.println("Error while sending Discord message");
+            System.out.println(e.getMessage());
+            Sentry.captureException(e);
+        }
     }
 }
