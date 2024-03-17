@@ -21,15 +21,12 @@ public class RepositoryProcessor {
         checkDescriptionOrMakeIssue(repo);
         checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "bug_report.md", "Create bug_report.md", ".github/ISSUE_TEMPLATE/bug_report.md");
         checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "feature_request.md", "Create feature_request.md", ".github/ISSUE_TEMPLATE/feature_request.md");
-
         checkOrUpload(repo, ".github", "PULL_REQUEST_TEMPLATE.md", "Create PULL_REQUEST_TEMPLATE.md", ".github/PULL_REQUEST_TEMPLATE.md");
         checkOrUpload(repo, "", "CODE_OF_CONDUCT.md", "Create CODE_OF_CONDUCT.md", "CODE_OF_CONDUCT.md");
         checkOrUpload(repo, "", "CONTRIBUTING.md", "Create CONTRIBUTING.md", "CONTRIBUTING.md");
         checkOrUpload(repo, "", "LICENSE", "Create LICENSE", "LICENSE");
         checkOrUpload(repo, "", "SECURITY.md", "Create SECURITY.md", "SECURITY.md");
-
         checkOrUpload(repo, "", "README.md", "Create README.md", "README.md");
-
         checkFileNotExistsOrMakeIssue(repo, "", ".env", "Delete .env file");
 
         if (repo.getLanguage() != null) {
