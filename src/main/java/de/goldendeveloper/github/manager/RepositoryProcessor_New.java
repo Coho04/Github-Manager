@@ -1,5 +1,8 @@
 package de.goldendeveloper.github.manager;
 
+import de.goldendeveloper.github.manager.dataobject.GHRepository;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +16,8 @@ public class RepositoryProcessor_New {
     private String branch = "main";
     private String githubToken = "YOUR_GITHUB_TOKEN";
 
-    public void process(String repoName) throws IOException {
+    public void process(JSONObject repoName) throws IOException {
+        GHRepository repository = new GHRepository(repoName);
         checkBranchOrMakeIssue(repoName);
         checkDescriptionOrMakeIssue(repoName);
         checkOrUpload(repoName, ".github/ISSUE_TEMPLATE", "bug_report.md", "Create bug_report.md", ".github/ISSUE_TEMPLATE/bug_report.md");

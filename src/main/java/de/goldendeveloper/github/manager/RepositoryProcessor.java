@@ -1,7 +1,9 @@
 package de.goldendeveloper.github.manager;
 
+import de.goldendeveloper.github.manager.dataobject.GHBranch;
+import de.goldendeveloper.github.manager.dataobject.GHIssueState;
+import de.goldendeveloper.github.manager.dataobject.GHRepository;
 import io.sentry.Sentry;
-import org.kohsuke.github.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,7 +30,6 @@ public class RepositoryProcessor {
         checkOrUpload(repo, "", "SECURITY.md", "Create SECURITY.md", "SECURITY.md");
         checkOrUpload(repo, "", "README.md", "Create README.md", "README.md");
         checkFileNotExistsOrMakeIssue(repo, "", ".env", "Delete .env file");
-
         if (repo.getLanguage() != null) {
             if (repo.getLanguage().equalsIgnoreCase("Java")) {
                 checkDirectoryNotExistsOrMakeIssue(repo, ".idea", "Remove .idea directory");

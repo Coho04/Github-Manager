@@ -1,9 +1,13 @@
 package de.goldendeveloper.github.manager;
 
 import de.goldendeveloper.github.manager.console.ConsoleReader;
+import de.goldendeveloper.github.manager.dataobject.GHRepository;
+import de.goldendeveloper.github.manager.dataobject.Github;
 import io.sentry.ITransaction;
 import io.sentry.SpanStatus;
 import io.sentry.Sentry;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -58,30 +62,34 @@ public class Main {
     public static void runRepositoryProcessor() {
         try {
             String githubToken = config.getGithubToken();
-            String githubUsername = config.getGithubUsername();
             String orgName = "Golden-Developer";
+            Github github = new Github(orgName, githubToken);
+
+  /*          String authHeader = "Bearer " + githubToken;
+
             String orgUrl = "https://api.github.com/orgs/" + orgName;
-            String orgReposUrl = orgUrl + "/repos";
-            String authHeader = "Bearer " + githubToken;
+
             String orgResponse = sendGetRequest(orgUrl, authHeader);
             if (orgResponse != null) {
-                String orgId = JsonPath.read(orgResponse, "$.id").toString();
-                String totalRepos = JsonPath.read(orgResponse, "$.public_repos").toString();
-
-                LoadingBar loadingBar = new LoadingBar(Integer.parseInt(totalRepos));
-
-                String reposResponse = sendGetRequest(orgReposUrl, authHeader);
+                String reposResponse = sendGetRequest(orgUrl + "/repos", authHeader);
                 if (reposResponse != null) {
-                    List<String> repoIds = JsonPath.read(reposResponse, "$.[*].id");
-                    for (String repoId : repoIds) {
-                        String repoUrl = "https://api.github.com/repositories/" + repoId;
-                        String repoResponse = sendGetRequest(repoUrl, authHeader);
-                        if (repoResponse != null) {
-                            processRepository(repoResponse);
-                            loadingBar.updateProgress();
-                        }
+                    JSONArray reposJsonArray = new JSONArray(reposResponse);
+
+
+                    for (int i = 0; i < reposJsonArray.length(); i++) {
+                        JSONObject repoJson = reposJsonArray.getJSONObject(i);
+                        repositoryProcessorNew.process(repoJson.getString("name"));
+                        loadingBar.updateProgress();
                     }
                 }
+            }*/
+
+            RepositoryProcessor repositoryProcessor = new RepositoryProcessor();
+            List<GHRepository> repositories = github.findOrganisationByName(orgName).getRepositories();
+            LoadingBar loadingBar = new LoadingBar(repositories.size());
+            for (GHRepository ghRepository : repositories) {
+                repositoryProcessor.process(ghRepository);
+                loadingBar.updateProgress();
             }
         } catch (Exception e) {
             System.out.println("An error occurred performing daily housekeeping");
@@ -89,6 +97,7 @@ public class Main {
             Sentry.captureException(e);
         }
     }
+
 
     private static String sendGetRequest(String url, String authHeader) throws IOException {
         HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
