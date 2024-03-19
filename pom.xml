@@ -88,6 +88,12 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>Golden-Developer</id>
+            <url>https://nexus.golden-developer.de/repository/maven-public/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
@@ -116,17 +122,9 @@
             <version>5.0.0-alpha.12</version>
         </dependency>
         <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20240303</version>
-        </dependency>
-
-        <dependency>
             <groupId>de.goldendeveloper</groupId>
             <artifactId>GithubAPI</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>/Users/c.ilgner/IdeaProjects/GithubAPI/target/GithubAPI-1.0.jar</systemPath>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </project>
