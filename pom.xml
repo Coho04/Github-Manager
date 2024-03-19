@@ -91,11 +91,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.kohsuke</groupId>
-            <artifactId>github-api</artifactId>
-            <version>1.319</version>
-        </dependency>
-        <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
             <version>3.0.0</version>
@@ -124,6 +119,14 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20240303</version>
+        </dependency>
+
+        <dependency>
+            <groupId>de.goldendeveloper</groupId>
+            <artifactId>GithubAPI</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>/Users/c.ilgner/IdeaProjects/GithubAPI/target/GithubAPI-1.0.jar</systemPath>
         </dependency>
     </dependencies>
 </project>

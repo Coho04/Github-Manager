@@ -1,25 +1,14 @@
 package de.goldendeveloper.github.manager;
 
 import de.goldendeveloper.github.manager.console.ConsoleReader;
-import de.goldendeveloper.github.manager.dataobject.GHRepository;
-import de.goldendeveloper.github.manager.dataobject.Github;
+import de.goldendeveloper.githubapi.Github;
+import de.goldendeveloper.githubapi.repositories.GHRepository;
 import io.sentry.ITransaction;
 import io.sentry.SpanStatus;
 import io.sentry.Sentry;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.util.Calendar;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Main {
 
@@ -64,54 +53,18 @@ public class Main {
             String githubToken = config.getGithubToken();
             String orgName = "Golden-Developer";
             Github github = new Github(orgName, githubToken);
-
-  /*          String authHeader = "Bearer " + githubToken;
-
-            String orgUrl = "https://api.github.com/orgs/" + orgName;
-
-            String orgResponse = sendGetRequest(orgUrl, authHeader);
-            if (orgResponse != null) {
-                String reposResponse = sendGetRequest(orgUrl + "/repos", authHeader);
-                if (reposResponse != null) {
-                    JSONArray reposJsonArray = new JSONArray(reposResponse);
-
-
-                    for (int i = 0; i < reposJsonArray.length(); i++) {
-                        JSONObject repoJson = reposJsonArray.getJSONObject(i);
-                        repositoryProcessorNew.process(repoJson.getString("name"));
-                        loadingBar.updateProgress();
-                    }
-                }
-            }*/
-
             RepositoryProcessor repositoryProcessor = new RepositoryProcessor();
             List<GHRepository> repositories = github.findOrganisationByName(orgName).getRepositories();
+            System.out.println("Repos: " + repositories.size());
             LoadingBar loadingBar = new LoadingBar(repositories.size());
             for (GHRepository ghRepository : repositories) {
                 repositoryProcessor.process(ghRepository);
                 loadingBar.updateProgress();
             }
         } catch (Exception e) {
-            System.out.println("An error occurred performing daily housekeeping");
+            System.out.println("An error occurred performing housekeeping");
             System.out.println("ErrorMessage: " + e.getMessage());
             Sentry.captureException(e);
-        }
-    }
-
-
-    private static String sendGetRequest(String url, String authHeader) throws IOException {
-        HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
-        con.setRequestMethod("GET");
-        con.setRequestProperty("Authorization", authHeader);
-        int responseCode = con.getResponseCode();
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
-                return in.lines().collect(Collectors.joining());
-            }
-        } else {
-            System.out.println("Failed to send GET request to: " + url);
-            System.out.println("Response Code: " + responseCode);
-            return null;
         }
     }
 

@@ -1,14 +1,13 @@
 package de.goldendeveloper.github.manager;
 
-import de.goldendeveloper.github.manager.dataobject.GHBranch;
-import de.goldendeveloper.github.manager.dataobject.GHIssueState;
-import de.goldendeveloper.github.manager.dataobject.GHRepository;
+import de.goldendeveloper.githubapi.enums.GHState;
+import de.goldendeveloper.githubapi.repositories.GHBranch;
+import de.goldendeveloper.githubapi.repositories.GHFile;
+import de.goldendeveloper.githubapi.repositories.GHRepository;
+import de.goldendeveloper.githubapi.builders.GHFileBuilder;
 import io.sentry.Sentry;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,7 +47,7 @@ public class RepositoryProcessor {
         String content = readResource(localPath);
         String finalContent = content.replace("REPO_NAME", repo.getName());
         try {
-            List<GHContent> directory = repo.getDirectoryContent(directoryPath);
+            List<GHFile> directory = repo.getDirectoryContent(directoryPath);
             if (directory.isEmpty() || directory.stream().noneMatch(file -> file.getName().equals(fileName))) {
                 if (!content.isEmpty()) {
                     String path = fileName;
@@ -71,7 +70,7 @@ public class RepositoryProcessor {
 
     private void checkOrIssue(GHRepository repo, String directoryPath, String fileName, String issueTitle) throws IOException {
         try {
-            List<GHContent> directory = repo.getDirectoryContent(directoryPath);
+            List<GHFile> directory = repo.getDirectoryContent(directoryPath);
             if (directory.isEmpty() || directory.stream().noneMatch(file -> file.getName().equals(fileName))) {
                 if (directoryPath.isEmpty()) {
                     makeIssue(repo, issueTitle);
@@ -91,43 +90,38 @@ public class RepositoryProcessor {
 
     public void uploadFile(GHRepository repo, String content, String commit, String path) throws IOException {
         if (repoIsNotIgnored(repo)) {
-            GHContentBuilder contentBuilder = repo.createContent();
-            contentBuilder.branch(branche);
-            contentBuilder.content(content);
-            contentBuilder.message(commit);
-            contentBuilder.path(path);
-            contentBuilder.commit();
+            GHFileBuilder fileBuilder = repo.addFile();
+            fileBuilder.setBranch(branche);
+            fileBuilder.setContent(content);
+            fileBuilder.setMessage(commit);
+            fileBuilder.setPath(path);
+            fileBuilder.commit();
             System.out.println("Uploaded file '" + path + "' to '" + repo.getName() + "'!");
         }
     }
 
     public void makeIssue(GHRepository repo, String title) throws IOException {
-        if (repoIsNotIgnored(repo) && repo.getIssues(GHIssueState.OPEN).stream().noneMatch(issue -> issue.getTitle().equals(title))) {
+        if (repoIsNotIgnored(repo) && repo.getIssues(GHState.OPEN).stream().noneMatch(issue -> issue.getTitle().equals(title))) {
             repo.createIssue(title).assignee("Coho04").create();
-        } else if (!repoIsNotIgnored(repo) && repo.getIssues(GHIssueState.ALL).stream().anyMatch(issue -> issue.getTitle().equals(title))) {
-            repo.getIssues(GHIssueState.OPEN).stream().filter(issue -> issue.getTitle().equals(title)).forEach(issue -> {
-                try {
-                    if (!repo.isArchived()) {
-                        issue.close();
-                    }
-                } catch (IOException e) {
-                    Sentry.captureException(e);
-                    System.out.println(e.getMessage());
+        } else if (!repoIsNotIgnored(repo) && repo.getIssues(GHState.ALL).stream().anyMatch(issue -> issue.getTitle().equals(title))) {
+            repo.getIssues(GHState.OPEN).stream().filter(issue -> issue.getTitle().equals(title)).forEach(issue -> {
+                if (!repo.isArchived()) {
+                    issue.close();
                 }
             });
         }
     }
 
-    public void checkWebsite(GHRepository repo) throws IOException {
+    public void checkWebsite(GHRepository repo) {
         if (repoIsNotIgnored(repo) && repo.getHomepage() == null) {
-            repo.setHomepage("https://Golden-Developer.de");
+            repo.updateHomePage("https://Golden-Developer.de");
         }
     }
 
-    public void checkTopics(GHRepository repo) throws IOException {
+    public void checkTopics(GHRepository repo) {
         if (repoIsNotIgnored(repo)) {
             List<String> defaultTopics = List.of("golden-developer");
-            List<String> topics = repo.listTopics();
+            List<String> topics = repo.getTopics();
             for (String topic : defaultTopics) {
                 if (!topics.contains(topic)) {
                     topics.add(topic.toLowerCase());
@@ -140,12 +134,7 @@ public class RepositoryProcessor {
                     topics.add("csharp");
                 }
             }
-            try {
-                repo.setTopics(topics);
-            } catch (IOException e) {
-                Sentry.captureException(e);
-                System.out.println(e.getMessage());
-            }
+            repo.updateTopics(topics);
         }
     }
 
@@ -162,7 +151,7 @@ public class RepositoryProcessor {
 
     private void checkFileNotExistsOrMakeIssue(GHRepository repository, String directory, String file, String issueTitle) {
         try {
-            List<GHContent> directoryContent = repository.getDirectoryContent(directory);
+            List<GHFile> directoryContent = repository.getDirectoryContent(directory);
             if (directoryContent.stream().anyMatch(content -> content.getName().equals(file))) {
                 makeIssue(repository, issueTitle);
             }
@@ -175,7 +164,7 @@ public class RepositoryProcessor {
 
     private void checkDirectoryNotExistsOrMakeIssue(GHRepository repository, String directory, String issueTitle) {
         try {
-            List<GHContent> directoryContent = repository.getDirectoryContent(directory);
+            List<GHFile> directoryContent = repository.getDirectoryContent(directory);
             if (!directoryContent.isEmpty()) {
                 makeIssue(repository, issueTitle);
             }
