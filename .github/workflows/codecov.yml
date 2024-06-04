@@ -1,4 +1,4 @@
-name: Build Java
+name: Codecov Java
 
 on:
   push:
