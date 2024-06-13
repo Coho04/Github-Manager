@@ -1,10 +1,12 @@
 package de.goldendeveloper.github.manager.console;
 
+import de.goldendeveloper.github.manager.Main;
 import de.goldendeveloper.github.manager.interfaces.ConsoleCommandInterface;
 import io.sentry.Sentry;
 import org.reflections.Reflections;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class ConsoleReader implements Runnable {
 
@@ -26,7 +28,7 @@ public class ConsoleReader implements Runnable {
                 commands.put(command.commandName(), command);
             } catch (ReflectiveOperationException e) {
                 Sentry.captureException(e);
-                System.out.println(e.getMessage());
+                Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
             }
         }
     }
@@ -34,14 +36,14 @@ public class ConsoleReader implements Runnable {
     @Override
     public void run() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Geben Sie 'exit' ein, um zu beenden.");
+        Main.getLogger().info("Geben Sie 'exit' ein, um zu beenden.");
         while (true) {
             String input = scanner.nextLine();
             ConsoleCommandInterface command = commands.get(input);
             if (command != null) {
                 command.run();
             } else {
-                System.out.println("Unbekannter Befehl");
+                Main.getLogger().log(Level.WARNING, "Unbekannter Befehl");
             }
             if (input.equalsIgnoreCase("exit")) {
                 break;

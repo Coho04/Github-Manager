@@ -1,18 +1,34 @@
 package de.goldendeveloper.github.manager;
 
 import de.goldendeveloper.github.manager.console.ConsoleReader;
+import de.goldendeveloper.github.manager.utilities.LoadingBar;
+import de.goldendeveloper.github.manager.utilities.LogFormatter;
+import io.github.coho04.githubapi.Github;
+import io.github.coho04.githubapi.entities.GHOrganisation;
+import io.github.coho04.githubapi.entities.repositories.GHRepository;
 import io.sentry.ITransaction;
 import io.sentry.SpanStatus;
-import org.kohsuke.github.*;
 import io.sentry.Sentry;
 
 import java.util.Calendar;
+import java.util.List;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Main {
 
     private static Config config;
+    private static Logger logger;
 
     public static void main(String[] args) {
+        logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+        logger.setUseParentHandlers(false);
+
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setFormatter(new LogFormatter());
+        logger.addHandler(handler);
+
         config = new Config();
         Sentry.init(options -> {
             options.setDsn(config.getSentryDns());
@@ -35,7 +51,9 @@ public class Main {
     private static void startProcess() {
         String device = System.getProperty("os.name").split(" ")[0];
         if (!device.equalsIgnoreCase("windows") && !device.equalsIgnoreCase("Mac")) {
-            new Discord();
+            if (config.getDiscordWebhook() != null && !config.getDiscordWebhook().isEmpty()) {
+                new Discord();
+            }
         }
         new ConsoleReader();
         System.out.println("Starting daily housekeeping daemon");
@@ -48,22 +66,26 @@ public class Main {
 
     public static void runRepositoryProcessor() {
         try {
-            GitHub github = GitHub.connect(config.getGithubUsername(), config.getGithubToken());
-            GHOrganization gdOrganization = github.getOrganization("Golden-Developer");
-            RepositoryProcessor processor = new RepositoryProcessor();
-
-            int totalRepos = gdOrganization.listRepositories().toList().size();
-            LoadingBar loadingBar = new LoadingBar(totalRepos);
-
-            for (GHRepository repo : gdOrganization.listRepositories()) {
-                processor.process(repo);
+            String githubToken = config.getGithubToken();
+            String orgName = "Golden-Developer";
+            Github github = new Github(githubToken);
+            RepositoryProcessor repositoryProcessor = new RepositoryProcessor();
+            GHOrganisation organisation = github.findOrganisationByName(orgName);
+            List<GHRepository> repositories = organisation.getRepositories();
+            Main.getLogger().info("Found " + repositories.size() + " repositories");
+            LoadingBar loadingBar = new LoadingBar(repositories.size());
+            for (GHRepository ghRepository : repositories) {
+                repositoryProcessor.process(ghRepository);
                 loadingBar.updateProgress();
             }
         } catch (Exception e) {
-            System.out.println("An error occurred performing daily housekeeping");
-            System.out.println("ErrorMessage: " + e.getMessage());
+            logger.log(Level.SEVERE, e.getMessage(), e);
             Sentry.captureException(e);
         }
+    }
+
+    public static Logger getLogger() {
+        return logger;
     }
 
     public static Config getConfig() {

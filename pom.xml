@@ -88,13 +88,7 @@
         </plugins>
     </build>
 
-
     <dependencies>
-        <dependency>
-            <groupId>org.kohsuke</groupId>
-            <artifactId>github-api</artifactId>
-            <version>1.321</version>
-        </dependency>
         <dependency>
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
@@ -121,9 +115,15 @@
             <version>5.0.0-alpha.14</version>
         </dependency>
         <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20240303</version>
+            <groupId>io.github.coho04</groupId>
+            <artifactId>GithubAPI</artifactId>
+            <version>1.0.4</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.1.0-alpha1</version>
         </dependency>
     </dependencies>
 </project>
