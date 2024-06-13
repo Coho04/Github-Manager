@@ -116,7 +116,7 @@
         </dependency>
         <dependency>
             <groupId>io.github.coho04</groupId>
-            <artifactId>GithubAPI</artifactId>
+            <artifactId>githubapi</artifactId>
             <version>1.0.4</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
