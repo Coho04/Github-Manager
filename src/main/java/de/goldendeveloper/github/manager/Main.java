@@ -1,11 +1,11 @@
 package de.goldendeveloper.github.manager;
 
-import de.coho04.githubapi.entities.GHOrganisation;
-import de.coho04.githubapi.entities.repositories.GHRepository;
 import de.goldendeveloper.github.manager.console.ConsoleReader;
-import de.coho04.githubapi.Github;
 import de.goldendeveloper.github.manager.utilities.LoadingBar;
 import de.goldendeveloper.github.manager.utilities.LogFormatter;
+import io.github.coho04.githubapi.Github;
+import io.github.coho04.githubapi.entities.GHOrganisation;
+import io.github.coho04.githubapi.entities.repositories.GHRepository;
 import io.sentry.ITransaction;
 import io.sentry.SpanStatus;
 import io.sentry.Sentry;

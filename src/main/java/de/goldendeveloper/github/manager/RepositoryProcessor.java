@@ -1,9 +1,9 @@
 package de.goldendeveloper.github.manager;
 
-import de.coho04.githubapi.entities.repositories.GHBranch;
-import de.coho04.githubapi.entities.repositories.GHFile;
-import de.coho04.githubapi.entities.repositories.GHRepository;
-import de.coho04.githubapi.builders.GHFileBuilder;
+import io.github.coho04.githubapi.builders.GHFileBuilder;
+import io.github.coho04.githubapi.entities.repositories.GHBranch;
+import io.github.coho04.githubapi.entities.repositories.GHFile;
+import io.github.coho04.githubapi.entities.repositories.GHRepository;
 import io.sentry.Sentry;
 
 import java.io.*;
@@ -199,7 +199,7 @@ public class RepositoryProcessor {
         }
     }
 
-    public Boolean repoIsNotIgnored(GHRepository repo) {
+    public boolean repoIsNotIgnored(GHRepository repo) {
         List<String> ignoredRepos = new java.util.ArrayList<>(List.of("TeamSpeakServerInstallScript", "MinecraftInstallScript", ".github", ".github-private"));
         List<String> ignoredLanguages = new java.util.ArrayList<>(List.of("html", "css", "typescript", "shell"));
         ignoredRepos.replaceAll(String::toLowerCase);
