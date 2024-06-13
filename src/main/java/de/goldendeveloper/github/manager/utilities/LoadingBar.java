@@ -1,4 +1,4 @@
-package de.goldendeveloper.github.manager;
+package de.goldendeveloper.github.manager.utilities;
 
 public class LoadingBar {
 
@@ -28,5 +28,4 @@ public class LoadingBar {
         }
         System.out.print("] " + (int) (((double) step / totalSteps) * 100) + "%");
     }
-
 }

@@ -7,6 +7,7 @@ import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import io.sentry.Sentry;
 
 import java.util.Date;
+import java.util.logging.Level;
 
 public class Discord {
 
@@ -22,8 +23,8 @@ public class Discord {
         try (WebhookClient client = new WebhookClientBuilder(Main.getConfig().getDiscordWebhook()).build()) {
             client.send(embed.build());
         } catch (Exception e) {
-            System.out.println("Error while sending Discord message");
-            System.out.println(e.getMessage());
+            Main.getLogger().log(Level.SEVERE, "Error while sending Discord message", e);
+            Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
             Sentry.captureException(e);
         }
     }

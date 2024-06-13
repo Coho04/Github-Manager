@@ -1,15 +1,15 @@
 package de.goldendeveloper.github.manager;
 
-import de.goldendeveloper.githubapi.enums.GHState;
-import de.goldendeveloper.githubapi.repositories.GHBranch;
-import de.goldendeveloper.githubapi.repositories.GHFile;
-import de.goldendeveloper.githubapi.repositories.GHRepository;
-import de.goldendeveloper.githubapi.builders.GHFileBuilder;
+import de.coho04.githubapi.entities.repositories.GHBranch;
+import de.coho04.githubapi.entities.repositories.GHFile;
+import de.coho04.githubapi.entities.repositories.GHRepository;
+import de.coho04.githubapi.builders.GHFileBuilder;
 import io.sentry.Sentry;
 
 import java.io.*;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public class RepositoryProcessor {
@@ -61,7 +61,7 @@ public class RepositoryProcessor {
             if (e.getMessage().contains("Not Found")) {
                 uploadFile(repo, finalContent, commitMessage, directoryPath + "/" + fileName);
             } else {
-                System.out.println("Error in " + repo.getName() + ": " + e.getMessage());
+                Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
                 Sentry.setTag("Repo-Name", repo.getName());
                 Sentry.captureException(e);
             }
@@ -72,23 +72,19 @@ public class RepositoryProcessor {
         try {
             List<GHFile> directory = repo.getDirectoryContent(directoryPath);
             if (directory.isEmpty() || directory.stream().noneMatch(file -> file.getName().equals(fileName))) {
-                if (directoryPath.isEmpty()) {
-                    makeIssue(repo, issueTitle);
-                } else {
-                    makeIssue(repo, issueTitle);
-                }
+                makeIssue(repo, issueTitle);
             }
         } catch (Exception e) {
             if (e.getMessage().contains("Not Found")) {
                 makeIssue(repo, issueTitle);
             } else {
                 Sentry.captureException(e);
-                System.out.println("Error in " + repo.getName() + ": " + e.getMessage());
+                Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
             }
         }
     }
 
-    public void uploadFile(GHRepository repo, String content, String commit, String path) throws IOException {
+    public void uploadFile(GHRepository repo, String content, String commit, String path) {
         if (repoIsNotIgnored(repo)) {
             GHFileBuilder fileBuilder = repo.addFile();
             fileBuilder.setBranch(branche);
@@ -96,15 +92,14 @@ public class RepositoryProcessor {
             fileBuilder.setMessage(commit);
             fileBuilder.setPath(path);
             fileBuilder.commit();
-            System.out.println("Uploaded file '" + path + "' to '" + repo.getName() + "'!");
         }
     }
 
     public void makeIssue(GHRepository repo, String title) throws IOException {
-        if (repoIsNotIgnored(repo) && repo.getIssues(GHState.OPEN).stream().noneMatch(issue -> issue.getTitle().equals(title))) {
+        if (repoIsNotIgnored(repo) && repo.getIssues().stream().noneMatch(issue -> issue.getTitle().equals(title))) {
             repo.createIssue(title).assignee("Coho04").create();
-        } else if (!repoIsNotIgnored(repo) && repo.getIssues(GHState.ALL).stream().anyMatch(issue -> issue.getTitle().equals(title))) {
-            repo.getIssues(GHState.OPEN).stream().filter(issue -> issue.getTitle().equals(title)).forEach(issue -> {
+        } else if (!repoIsNotIgnored(repo) && repo.getIssues().stream().anyMatch(issue -> issue.getTitle().equals(title))) {
+            repo.getIssues().stream().filter(issue -> issue.getTitle().equals(title)).forEach(issue -> {
                 if (!repo.isArchived()) {
                     issue.close();
                 }
@@ -114,7 +109,7 @@ public class RepositoryProcessor {
 
     public void checkWebsite(GHRepository repo) {
         if (repoIsNotIgnored(repo) && repo.getHomepage() == null) {
-            repo.updateHomePage("https://Golden-Developer.de");
+            //repo.updateHomePage("https://Golden-Developer.de");
         }
     }
 
@@ -157,7 +152,7 @@ public class RepositoryProcessor {
             }
         } catch (IOException e) {
             Sentry.captureException(e);
-            System.out.println(e.getMessage());
+            Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
@@ -171,7 +166,7 @@ public class RepositoryProcessor {
         } catch (IOException e) {
             if (!e.getMessage().contains("Not Found")) {
                 Sentry.captureException(e);
-                System.out.println(e.getMessage());
+                Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
             }
         }
     }
@@ -189,7 +184,7 @@ public class RepositoryProcessor {
             }
         } catch (IOException e) {
             Sentry.captureException(e);
-            System.out.println(e.getMessage());
+            Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
@@ -200,7 +195,7 @@ public class RepositoryProcessor {
             }
         } catch (IOException e) {
             Sentry.captureException(e);
-            System.out.println(e.getMessage());
+            Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
