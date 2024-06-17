@@ -23,7 +23,7 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Discord Informations(please complete the following information):**
+**Discord Information(please complete the following information):**
 - Invite Link to Discord Server
 - Account Name
 

@@ -5,11 +5,13 @@ import de.goldendeveloper.github.manager.utilities.LoadingBar;
 import de.goldendeveloper.github.manager.utilities.LogFormatter;
 import io.github.coho04.githubapi.Github;
 import io.github.coho04.githubapi.entities.GHOrganisation;
+import io.github.coho04.githubapi.entities.GHUser;
 import io.github.coho04.githubapi.entities.repositories.GHRepository;
 import io.sentry.ITransaction;
 import io.sentry.SpanStatus;
 import io.sentry.Sentry;
 
+import java.io.IOException;
 import java.util.Calendar;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
@@ -56,7 +58,7 @@ public class Main {
             }
         }
         new ConsoleReader();
-        System.out.println("Starting daily housekeeping daemon");
+        logger.info("Starting daily housekeeping daemon");
         Calendar timeOfDay = Calendar.getInstance();
         timeOfDay.set(Calendar.HOUR_OF_DAY, 12);
         timeOfDay.set(Calendar.MINUTE, 0);
@@ -66,22 +68,40 @@ public class Main {
 
     public static void runRepositoryProcessor() {
         try {
-            String githubToken = config.getGithubToken();
-            String orgName = "Golden-Developer";
-            Github github = new Github(githubToken);
-            RepositoryProcessor repositoryProcessor = new RepositoryProcessor();
-            GHOrganisation organisation = github.findOrganisationByName(orgName);
-            List<GHRepository> repositories = organisation.getRepositories();
-            Main.getLogger().info("Found " + repositories.size() + " repositories");
-            LoadingBar loadingBar = new LoadingBar(repositories.size());
-            for (GHRepository ghRepository : repositories) {
-                repositoryProcessor.process(ghRepository);
-                loadingBar.updateProgress();
-            }
+            Github github = new Github(config.getGithubToken());
+            config.getOrganisations().forEach(org -> {
+                RepositoryProcessor repositoryProcessor = new RepositoryProcessor();
+                GHOrganisation organisation = github.findOrganisationByName(org);
+                List<GHRepository> repositories = organisation.getRepositories();
+                Main.getLogger().info("Organisation: " + organisation.getName());
+                processRepositories(repositoryProcessor, repositories);
+            });
+
+            config.getUsers().forEach(user -> {
+                RepositoryProcessor repositoryProcessor = new RepositoryProcessor();
+                GHUser holder = github.findUserByName(user);
+                List<GHRepository> repositories = holder.listRepositories();
+                Main.getLogger().info("User: " + holder.getUsername());
+                processRepositories(repositoryProcessor, repositories);
+            });
         } catch (Exception e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
             Sentry.captureException(e);
         }
+    }
+
+    private static void processRepositories(RepositoryProcessor repositoryProcessor, List<GHRepository> repositories) {
+        Main.getLogger().info("Found " + repositories.size() + " repositories");
+        LoadingBar loadingBar = new LoadingBar(repositories.size());
+        for (GHRepository ghRepository : repositories) {
+            try {
+                repositoryProcessor.process(ghRepository);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            loadingBar.updateProgress();
+        }
+        System.out.println();
     }
 
     public static Logger getLogger() {

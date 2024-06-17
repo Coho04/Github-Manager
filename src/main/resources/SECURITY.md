@@ -4,9 +4,9 @@
 
 The latest commit on the main branch is the only version that is currently being supported. 
 
-| Version | Supported          |
-| ------- | ------------------ |
-| Latest Commit on Main  | :white_check_mark: |
+| Version               | Supported          |
+|-----------------------|--------------------|
+| Latest Commit on Main | :white_check_mark: |
 
 ## Reporting a Vulnerability
 

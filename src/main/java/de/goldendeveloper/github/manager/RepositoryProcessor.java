@@ -6,7 +6,11 @@ import io.github.coho04.githubapi.entities.repositories.GHFile;
 import io.github.coho04.githubapi.entities.repositories.GHRepository;
 import io.sentry.Sentry;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -20,24 +24,16 @@ public class RepositoryProcessor {
         branche = "main";
         checkBranchOrMakeIssue(repo);
         checkDescriptionOrMakeIssue(repo);
-        checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "bug_report.md", "Create bug_report.md", ".github/ISSUE_TEMPLATE/bug_report.md");
-        checkOrUpload(repo, ".github/ISSUE_TEMPLATE", "feature_request.md", "Create feature_request.md", ".github/ISSUE_TEMPLATE/feature_request.md");
-        checkOrUpload(repo, ".github", "PULL_REQUEST_TEMPLATE.md", "Create PULL_REQUEST_TEMPLATE.md", ".github/PULL_REQUEST_TEMPLATE.md");
-        checkOrUpload(repo, "", "CODE_OF_CONDUCT.md", "Create CODE_OF_CONDUCT.md", "CODE_OF_CONDUCT.md");
-        checkOrUpload(repo, "", "CONTRIBUTING.md", "Create CONTRIBUTING.md", "CONTRIBUTING.md");
-        checkOrUpload(repo, "", "LICENSE", "Create LICENSE", "LICENSE");
-        checkOrUpload(repo, "", "SECURITY.md", "Create SECURITY.md", "SECURITY.md");
-        checkOrUpload(repo, "", "README.md", "Create README.md", "README.md");
+        checkOrUploadFiles(repo, "", List.of("CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "LICENSE", "SECURITY.md", "README.md"));
+        checkOrUploadFiles(repo, ".github/ISSUE_TEMPLATE", List.of("bug_report.md", "feature_request.md"));
+        checkOrUploadFiles(repo, ".github", List.of("PULL_REQUEST_TEMPLATE.md"));
         checkFileNotExistsOrMakeIssue(repo, "", ".env", "Delete .env file");
         if (repo.getLanguage() != null) {
             if (repo.getLanguage().equalsIgnoreCase("Java")) {
                 checkDirectoryNotExistsOrMakeIssue(repo, ".idea", "Remove .idea directory");
                 checkOrUpload(repo, ".github/workflows", "build.yml", "Create build.yml", ".github/workflows/java/maven.yml");
             }
-
-            if (!repo.getLanguage().equalsIgnoreCase("swift")) {
-                checkOrIssue(repo, ".github", "dependabot.yml", "Create dependabot.yml");
-            }
+            checkOrUpdateDependabot(repo);
         }
         checkWebsite(repo);
         checkTopics(repo);
@@ -68,21 +64,30 @@ public class RepositoryProcessor {
         }
     }
 
-    private void checkOrIssue(GHRepository repo, String directoryPath, String fileName, String issueTitle) throws IOException {
+    private void checkOrUploadFiles(GHRepository repo, String directoryPath, List<String> files) {
         try {
             List<GHFile> directory = repo.getDirectoryContent(directoryPath);
-            if (directory.isEmpty() || directory.stream().noneMatch(file -> file.getName().equals(fileName))) {
-                makeIssue(repo, issueTitle);
+            for (String fileToUpload : files) {
+                String content = readResource((directoryPath.isEmpty() ? "" : directoryPath + "/") + fileToUpload);
+                String finalContent = content.replace("REPO_NAME", repo.getName());
+                if (directory.isEmpty() || directory.stream().noneMatch(file -> file.getName().equals(fileToUpload))) {
+                    if (!content.isEmpty()) {
+                        String path = fileToUpload;
+                        if (!directoryPath.isEmpty()) {
+                            path = directoryPath + "/" + fileToUpload;
+                        }
+                        uploadFile(repo, finalContent, "Create " + fileToUpload, path);
+                    }
+                }
             }
         } catch (Exception e) {
-            if (e.getMessage().contains("Not Found")) {
-                makeIssue(repo, issueTitle);
-            } else {
-                Sentry.captureException(e);
-                Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
-            }
+            Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
+            Sentry.setTag("Repo-Name", repo.getName());
+            Sentry.captureException(e);
+//            }
         }
     }
+
 
     public void uploadFile(GHRepository repo, String content, String commit, String path) {
         if (repoIsNotIgnored(repo)) {
@@ -109,13 +114,16 @@ public class RepositoryProcessor {
 
     public void checkWebsite(GHRepository repo) {
         if (repoIsNotIgnored(repo) && repo.getHomepage() == null) {
-            //repo.updateHomePage("https://Golden-Developer.de");
+            String homepage = Main.getConfig().getDefaultHomepage();
+            if (homepage != null) {
+                repo.updateHomePage(homepage);
+            }
         }
     }
 
     public void checkTopics(GHRepository repo) {
         if (repoIsNotIgnored(repo)) {
-            List<String> defaultTopics = List.of("golden-developer");
+            List<String> defaultTopics = Main.getConfig().getDefaultTopics();
             List<String> topics = repo.getTopics();
             for (String topic : defaultTopics) {
                 if (!topics.contains(topic)) {
@@ -200,13 +208,107 @@ public class RepositoryProcessor {
     }
 
     public boolean repoIsNotIgnored(GHRepository repo) {
-        List<String> ignoredRepos = new java.util.ArrayList<>(List.of("TeamSpeakServerInstallScript", "MinecraftInstallScript", ".github", ".github-private"));
-        List<String> ignoredLanguages = new java.util.ArrayList<>(List.of("html", "css", "typescript", "shell"));
-        ignoredRepos.replaceAll(String::toLowerCase);
-        ignoredLanguages.replaceAll(String::toLowerCase);
+        List<String> ignoredRepos = Main.getConfig().getIgnoredRepositories().stream().map(String::toLowerCase).toList();
+        List<String> ignoredLanguages = Main.getConfig().getIgnoredLanguages().stream().map(String::toLowerCase).toList();
         if (repo.isArchived() || repo.getLanguage() == null || ignoredLanguages.contains(repo.getLanguage().toLowerCase())) {
             return false;
         }
         return !ignoredRepos.contains(repo.getName().toLowerCase());
+    }
+
+    public void checkOrUpdateDependabot(GHRepository repo) throws IOException {
+        if (!repo.isArchived()) {
+            HashMap<String, String> packages = new HashMap<>();
+            packages.put("package.json", "npm");
+            packages.put("pom.xml", "maven");
+            packages.put("build.gradle", "gradle");
+            packages.put("composer.json", "composer");
+            try {
+                List<GHFile> directory = repo.getDirectoryContentWithFileContent(".github");
+                if (directory.isEmpty() || directory.stream().noneMatch(file -> file.getName().equals("dependabot.yml"))) {
+                    List<GHFile> rootDirectory = repo.getDirectoryContent("");
+                    if (!rootDirectory.isEmpty()) {
+                        List<GHFile> p = rootDirectory.stream().filter(file -> packages.containsKey(file.getName().toLowerCase())).toList();
+                        if (!p.isEmpty()) {
+                            StringBuilder builder = new StringBuilder();
+                            for (GHFile file : p) {
+                                addPackageManager(builder, packages.get(file.getName().toLowerCase()));
+                            }
+                            List<GHFile> workflows = repo.getDirectoryContent(".github/workflows");
+                            if (!workflows.isEmpty()) {
+                                addPackageManager(builder, "github-actions");
+                            }
+
+                            String content = readResource(".github/dependabot.yml");
+                            String finalContent = content.replace("PACKAGES", builder.toString());
+                            GHFileBuilder fileBuilder = repo.addFile();
+                            fileBuilder.setBranch(branche);
+                            fileBuilder.setContent(finalContent);
+                            fileBuilder.setMessage("Create dependabot.yml");
+                            fileBuilder.setPath(".github/dependabot.yml");
+                            fileBuilder.commit();
+                        }
+                    }
+                } else {
+                    GHFile dependabot = directory.stream().filter(file -> file.getName().equals("dependabot.yml")).findFirst().orElse(null);
+                    if (dependabot != null) {
+                        List<GHFile> rootDirectory = repo.getDirectoryContent("");
+                        if (!rootDirectory.isEmpty()) {
+                            List<GHFile> p = rootDirectory.stream().filter(file -> packages.containsKey(file.getName().toLowerCase())).toList();
+                            if (!p.isEmpty()) {
+                                String content = dependabot.getContent();
+                                StringBuilder builder = new StringBuilder();
+                                boolean newPackageManager = false;
+                                for (GHFile file : p) {
+                                    String packageManager = packages.get(file.getName().toLowerCase());
+                                    if (!content.contains(packageManager)) {
+                                        newPackageManager = true;
+                                        addPackageManager(builder, packages.get(file.getName().toLowerCase()));
+                                    }
+                                }
+                                List<GHFile> workflows = repo.getDirectoryContent(".github/workflows");
+                                if (!workflows.isEmpty()) {
+                                    if (!content.contains("github-actions")) {
+                                        newPackageManager = true;
+                                        addPackageManager(builder, "github-actions");
+                                    }
+                                }
+                                if (newPackageManager) {
+                                    String finalContent = content + "\n" + builder;
+                                    GHFileBuilder fileBuilder = dependabot.updateFile();
+                                    fileBuilder.setBranch(branche);
+                                    fileBuilder.setContent(finalContent);
+                                    fileBuilder.setMessage("Update dependabot.yml");
+                                    fileBuilder.setPath(".github/dependabot.yml");
+                                    fileBuilder.commit();
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                if (e.getMessage().contains("Not Found")) {
+                    makeIssue(repo, "Create dependabot.yml");
+                } else {
+                    Sentry.captureException(e);
+                    Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
+                }
+            }
+        }
+    }
+
+    private void addPackageManager(StringBuilder builder, String packageManager) {
+        builder.append("\n");
+        builder.append("  - package-ecosystem: \"");
+        builder.append(packageManager);
+        builder.append("\"\n");
+        builder.append("    directory: \"/\"\n");
+        builder.append("    schedule:\n");
+        builder.append("      interval: \"daily\"\n");
+        builder.append("    assignees:\n");
+        builder.append(Main.getConfig().getDependabotReviewers().stream().map(s -> "    - \"" + s + "\"").collect(Collectors.joining("\n")));
+        builder.append("\n");
+        builder.append("    reviewers:\n");
+        builder.append(Main.getConfig().getDependabotReviewers().stream().map(s -> "    - \"" + s + "\"").collect(Collectors.joining("\n")));
     }
 }
