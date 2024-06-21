@@ -93,7 +93,14 @@ public class Main {
     private static void processRepositories(RepositoryProcessor repositoryProcessor, List<GHRepository> repositories) {
         Main.getLogger().info("Found " + repositories.size() + " repositories");
         LoadingBar loadingBar = new LoadingBar(repositories.size());
+        List<String> ignoredRepos = Main.getConfig().getIgnoredRepositories();
         for (GHRepository ghRepository : repositories) {
+            System.out.println("Processing repository: " + ghRepository.getName());
+            if (ignoredRepos.contains(ghRepository.getName())) {
+                System.out.println("Repository is ignored");
+                loadingBar.updateProgress();
+                continue;
+            }
             try {
                 repositoryProcessor.process(ghRepository);
             } catch (IOException e) {
