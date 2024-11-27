@@ -10,6 +10,7 @@ import io.github.coho04.githubapi.entities.repositories.GHRepository;
 import io.sentry.ITransaction;
 import io.sentry.SpanStatus;
 import io.sentry.Sentry;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Calendar;
@@ -20,6 +21,7 @@ import java.util.logging.Logger;
 
 public class Main {
 
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(Main.class);
     private static Config config;
     private static Logger logger;
 
@@ -95,9 +97,9 @@ public class Main {
         LoadingBar loadingBar = new LoadingBar(repositories.size());
         List<String> ignoredRepos = Main.getConfig().getIgnoredRepositories();
         for (GHRepository ghRepository : repositories) {
-            System.out.println("Processing repository: " + ghRepository.getName());
+            logger.log(Level.INFO, "Processing repository: " + ghRepository.getName());
             if (ignoredRepos.contains(ghRepository.getName())) {
-                System.out.println("Repository is ignored");
+                logger.log(Level.INFO, "Repository is ignored");
                 loadingBar.updateProgress();
                 continue;
             }

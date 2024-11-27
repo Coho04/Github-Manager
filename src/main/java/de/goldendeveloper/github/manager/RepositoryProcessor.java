@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -84,7 +85,6 @@ public class RepositoryProcessor {
             Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
             Sentry.setTag("Repo-Name", repo.getName());
             Sentry.captureException(e);
-//            }
         }
     }
 
@@ -125,9 +125,12 @@ public class RepositoryProcessor {
         if (repoIsNotIgnored(repo)) {
             List<String> defaultTopics = Main.getConfig().getDefaultTopics();
             List<String> topics = repo.getTopics();
-            for (String topic : defaultTopics) {
-                if (!topics.contains(topic)) {
-                    topics.add(topic.toLowerCase());
+
+            if (!defaultTopics.isEmpty()) {
+                for (String topic : defaultTopics) {
+                    if (!topics.contains(topic)) {
+                        topics.add(topic.toLowerCase());
+                    }
                 }
             }
             if (repo.getLanguage() != null && !topics.contains(repo.getLanguage().toLowerCase())) {
@@ -137,7 +140,13 @@ public class RepositoryProcessor {
                     topics.add("csharp");
                 }
             }
-            repo.updateTopics(topics);
+            try {
+                if (!new HashSet<>(topics).containsAll(repo.getTopics())) {
+                    repo.updateTopics(topics);
+                }
+            } catch (Exception e) {
+                Main.getLogger().log(Level.SEVERE, e.getMessage(), e);
+            }
         }
     }
 
