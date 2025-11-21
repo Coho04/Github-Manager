@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Java version
         uses: actions/setup-java@v5
         with:
@@ -20,7 +20,7 @@ jobs:
       - name: Build with Maven
         run: mvn clean install
       - name: 🚚 Get latest code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Build Jar
         run: cd ${{ github.workspace }} && mvn install
       - name: 📂 Sync files
